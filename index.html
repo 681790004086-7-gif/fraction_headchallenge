@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fraction Head Challenge - เกมสมการเชิงเส้นตัวแปรเดียว</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts (Mitr & Itim) -->
+    <link href="https://fonts.googleapis.com/css2?family=Itim&family=Mitr:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- MediaPipe Hands & Camera Utils CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+    <style>
+        body {
+            font-family: 'Itim', 'Mitr', sans-serif;
+            background-color: #e0f2fe;
+            background-image: radial-gradient(#bae6fd 1px, transparent 1px);
+            background-size: 24px 24px;
+            overflow-x: hidden;
+        }
+        .btn-bounce {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .btn-bounce:hover {
+            transform: scale(1.05) translateY(-2px);
+        }
+        .btn-bounce:active {
+            transform: scale(0.98) translateY(0);
+        }
+        /* Custom Keyframes for Animations */
+        @keyframes bounce-scale {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+        @keyframes rotate-star {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+            20%, 40%, 60%, 80% { transform: translateX(10px); }
+        }
+        .animate-bounce-scale {
+            animation: bounce-scale 0.6s ease-in-out;
+        }
+        .animate-rotate-star {
+            animation: rotate-star 1.5s linear infinite;
+        }
+        .animate-shake {
+            animation: shake 0.5s ease-in-out;
+        }
+        /* Confetti Effect Container */
+        #confetti-container {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 50;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between text-slate-800">
+
+    <!-- Header Navigation -->
+    <header class="w-full bg-white/80 backdrop-blur shadow-md px-6 py-4 flex justify-between items-center z-10">
+        <div class="flex items-center gap-3">
+            <div class="bg-gradient-to-tr from-pink-500 to-indigo-500 text-white p-2.5 rounded-2xl shadow-md">
+                <i class="fa-solid fa-calculator text-2xl"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold tracking-wider text-indigo-600">Fraction Head Challenge</h1>
+                <p class="text-xs text-slate-500">เกมสมการเชิงเส้นตัวแปรเดียวและระบบท่าทางมือ</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+            <button id="sound-toggle" class="w-11 h-11 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors shadow">
+                <i id="sound-icon" class="fa-solid fa-volume-high text-lg text-indigo-600"></i>
+            </button>
+            <div id="user-badge" class="hidden bg-indigo-50 px-4 py-2 rounded-full border border-indigo-100 items-center gap-2">
+                <i class="fa-solid fa-circle-user text-indigo-500 text-lg"></i>
+                <span id="badge-name" class="font-medium text-indigo-700 text-sm">ผู้เล่นใหม่</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <main class="flex-grow flex items-center justify-center p-4 relative">
+        <div id="confetti-container"></div>
+
+        <!-- SCREEN 1: Home Screen (หน้าแรก) -->
+        <section id="screen-home" class="w-full max-w-lg bg-white rounded-3xl shadow-2xl border-4 border-indigo-400 p-8 flex flex-col items-center gap-6 relative overflow-hidden">
+            <!-- Background Cute Math Ornaments -->
+            <div class="absolute -top-6 -left-6 text-indigo-100 text-7xl select-none pointer-events-none opacity-50 transform -rotate-12"><i class="fa-solid fa-plus"></i></div>
+            <div class="absolute -bottom-6 -right-6 text-pink-100 text-7xl select-none pointer-events-none opacity-50 transform rotate-12"><i class="fa-solid fa-divide"></i></div>
+            <div class="absolute top-1/2 -right-8 text-emerald-100 text-6xl select-none pointer-events-none opacity-40 transform rotate-45"><i class="fa-solid fa-square-root-variable"></i></div>
+
+            <div class="text-center z-10">
+                <span class="bg-pink-100 text-pink-600 font-bold px-4 py-1.5 rounded-full text-xs uppercase tracking-widest shadow-sm">Math Pose Game</span>
+                <h2 class="text-4xl font-extrabold text-indigo-600 mt-3 drop-shadow">Fraction Head Challenge</h2>
+                <p class="text-slate-500 mt-1">ฝึกคำนวณสมการตัวแปรเดียว ผ่านท่าทางสัญลักษณ์มือ</p>
+            </div>
+
+            <!-- Mascot Image -->
+            <div class="w-32 h-32 bg-indigo-100 rounded-full flex items-center justify-center border-4 border-white shadow-inner relative z-10 transform hover:scale-110 transition-transform duration-300">
+                <span class="text-6xl">🤖</span>
+                <div class="absolute -top-2 -right-2 bg-pink-500 text-white text-xs font-bold px-2 py-1 rounded-md rotate-12 shadow">v1.1</div>
+            </div>
+
+            <!-- Actions Grid -->
+            <div class="w-full flex flex-col gap-3.5 z-10">
+                <button onclick="changeScreen('screen-setup')" class="btn-bounce w-full bg-gradient-to-r from-emerald-400 to-teal-500 text-white font-bold text-xl py-4 px-6 rounded-2xl shadow-lg border-b-4 border-teal-600 flex items-center justify-center gap-3">
+                    <i class="fa-solid fa-circle-play text-2xl"></i> เริ่มเกมใหม่
+                </button>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="changeScreen('screen-tutorial')" class="btn-bounce bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 border-b-2 border-blue-300">
+                        <i class="fa-solid fa-circle-info"></i> วิธีเล่น
+                    </button>
+                    <button onclick="openScores()" class="btn-bounce bg-pink-100 hover:bg-pink-200 text-pink-700 font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 border-b-2 border-pink-300">
+                        <i class="fa-solid fa-trophy"></i> ตารางคะแนน
+                    </button>
+                </div>
+                <!-- Hard Mode Unlock Button -->
+                <button id="btn-difficulty-selector" onclick="toggleDifficultyFromHome()" class="btn-bounce w-full bg-slate-100 text-slate-400 font-bold py-3 px-5 rounded-2xl border-2 border-dashed border-slate-300 flex items-center justify-between transition-all">
+                    <span class="flex items-center gap-2">
+                        <i id="diff-home-icon" class="fa-solid fa-lock text-slate-400"></i>
+                        <span>ระดับความยาก: <strong id="lbl-home-difficulty">ปกติ (สุ่มด่าน)</strong></span>
+                    </span>
+                    <span id="lbl-difficulty-unlock-badge" class="text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded">ล็อค (สะสม 200 คะแนน)</span>
+                </button>
+            </div>
+
+            <!-- Footer Meta -->
+            <div class="text-xs text-slate-400 text-center z-10">
+                สร้างสรรค์มาเพื่อผู้เรียนชั้นมัธยมศึกษาตอนต้น • รองรับกล้องเว็บแคม
+            </div>
+        </section>
+
+        <!-- SCREEN 2: Player Registration / Setup (ลงชื่อผู้เล่น) -->
+        <section id="screen-setup" class="hidden w-full max-w-md bg-white rounded-3xl shadow-2xl border-4 border-indigo-400 p-8 flex flex-col gap-6">
+            <div class="text-center">
+                <i class="fa-solid fa-id-card text-5xl text-indigo-500 mb-2"></i>
+                <h3 class="text-2xl font-bold text-slate-800">ข้อมูลผู้เล่น</h3>
+                <p class="text-slate-500 text-sm">กรุณากรอกชื่อของคุณเพื่อเก็บบันทึกประวัติและอันดับคะแนนสูงสุด</p>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label for="txt-player-name" class="block text-sm font-bold text-slate-600 mb-1">ชื่อผู้เล่น / นามแฝง</label>
+                    <input type="text" id="txt-player-name" placeholder="ระบุชื่อภาษาไทยหรืออังกฤษ..." class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-lg transition-colors" maxlength="15">
+                </div>
+                <!-- Player Statistics Mini-Card -->
+                <div id="box-player-stats" class="hidden bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                    <h4 class="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-2 flex items-center gap-1">
+                        <i class="fa-solid fa-chart-simple"></i> สถิติย้อนหลังของคุณ
+                    </h4>
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <div class="bg-white p-2.5 rounded-lg shadow-xs"><span class="text-slate-400 text-xs">คะแนนสูงสุด:</span> <strong id="lbl-stat-high" class="text-indigo-600 text-base block">0</strong></div>
+                        <div class="bg-white p-2.5 rounded-lg shadow-xs"><span class="text-slate-400 text-xs">จำนวนครั้งที่เล่น:</span> <strong id="lbl-stat-count" class="text-slate-600 text-base block">0</strong></div>
+                        <div class="bg-white p-2.5 rounded-lg shadow-xs col-span-2"><span class="text-slate-400 text-xs">เล่นล่าสุดเมื่อ:</span> <span id="lbl-stat-date" class="text-slate-600 block text-xs">ไม่มีข้อมูล</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="changeScreen('screen-home')" class="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3.5 rounded-xl transition-colors">กลับหน้าหลัก</button>
+                <button onclick="saveUserAndProceed()" class="w-2/3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl transition-all border-b-4 border-indigo-800 flex items-center justify-center gap-2">
+                    ดำเนินการต่อ <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- SCREEN 3: Tutorial (อธิบายวิธีเล่น) -->
+        <section id="screen-tutorial" class="hidden w-full max-w-xl bg-white rounded-3xl shadow-2xl border-4 border-indigo-400 p-8 flex flex-col gap-6">
+            <div class="text-center">
+                <h3 class="text-3xl font-bold text-indigo-600 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-book-open"></i> วิธีการเล่นเกม
+                </h3>
+                <p class="text-slate-400 text-sm">ใช้การขยับและเคลื่อนไหวท่าทางของมือเพื่อตอบคำถามแทนการกดปุ่ม!</p>
+            </div>
+
+            <!-- Tutorial Slides / Instructions List -->
+            <div class="space-y-4 max-h-96 overflow-y-auto pr-2 text-base text-slate-700">
+                <div class="flex gap-4 items-start bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                    <div class="bg-indigo-500 text-white w-7 h-7 rounded-full flex items-center justify-center shrink-0 font-bold">1</div>
+                    <p>ระบบจะขออนุญาตใช้งานกล้องหน้า เพื่อใช้ตรวจจับสัญลักษณ์การเคลื่อนไหวของมือ</p>
+                </div>
+                <div class="flex gap-4 items-start bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                    <div class="bg-indigo-500 text-white w-7 h-7 rounded-full flex items-center justify-center shrink-0 font-bold">2</div>
+                    <p>อ่านโจทย์สมการคณิตศาสตร์ที่แสดงขึ้นมาตรงกลางด้านบนหน้าจอ</p>
+                </div>
+                <div class="flex gap-4 items-start bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                    <div class="bg-indigo-500 text-white w-7 h-7 rounded-full flex items-center justify-center shrink-0 font-bold">3</div>
+                    <p>จะมีตัวเลือกคำตอบ 2 ฝั่ง ซ้ายและขวา</p>
+                </div>
+                <div class="flex gap-4 items-start bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+                    <div class="bg-emerald-500 text-white w-7 h-7 rounded-full flex items-center justify-center shrink-0 font-bold">4</div>
+                    <div>
+                        <p class="font-bold text-emerald-800">วิธีการส่งคำตอบ:</p>
+                        <ul class="list-disc list-inside space-y-1.5 mt-1.5 text-slate-600">
+                            <li>เลือกคำตอบ <strong class="text-indigo-600">ด้านซ้าย</strong> ให้ทำการ <strong class="text-emerald-700 bg-white px-1.5 py-0.5 rounded border border-emerald-200">✊ กำมือ (Fist)</strong></li>
+                            <li>เลือกคำตอบ <strong class="text-indigo-600">ด้านขวา</strong> ให้ทำการ <strong class="text-emerald-700 bg-white px-1.5 py-0.5 rounded border border-emerald-200">✋ แบมือ (Open Hand)</strong></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="flex gap-4 items-start bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                    <div class="bg-indigo-500 text-white w-7 h-7 rounded-full flex items-center justify-center shrink-0 font-bold">5</div>
+                    <p>หากตอบถูกจะได้รับ <strong class="text-emerald-600">+10 คะแนน</strong> ตอบผิดจะ <strong class="text-pink-600">-5 คะแนน</strong></p>
+                </div>
+                <div class="flex gap-4 items-start bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                    <div class="bg-indigo-500 text-white w-7 h-7 rounded-full flex items-center justify-center shrink-0 font-bold">6</div>
+                    <p>เมื่อสะสมครบ <strong class="text-indigo-600">100 คะแนน</strong> จะชนะด่านและปลดล็อกโหมดระดับยากทันที!</p>
+                </div>
+                <div class="flex gap-4 items-start bg-pink-50 p-3.5 rounded-xl border border-pink-100">
+                    <div class="bg-pink-500 text-white w-7 h-7 rounded-full flex items-center justify-center shrink-0 font-bold">7</div>
+                    <p class="text-pink-800 font-bold">หากตอบผิดรวมครบ 2 ครั้ง เกมจะโอเวอร์ทันที!</p>
+                </div>
+            </div>
+
+            <button onclick="startGame()" class="btn-bounce w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 rounded-xl shadow-lg border-b-4 border-emerald-700 flex items-center justify-center gap-2 text-lg">
+                เข้าสู่โหมดกล้องและเริ่มเล่นทันที <i class="fa-solid fa-gamepad"></i>
+            </button>
+        </section>
+
+        <!-- SCREEN 4: Game Play Room (หน้าจอเล่นเกมหลัก) -->
+        <section id="screen-game" class="hidden w-full max-w-5xl bg-white rounded-3xl shadow-2xl border-4 border-indigo-400 overflow-hidden flex flex-col md:flex-row">
+            
+            <!-- Left Panel: Gameplay Area -->
+            <div class="w-full md:w-3/5 p-6 flex flex-col justify-between gap-6">
+                <!-- Status Bar -->
+                <div class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <div>
+                        <span class="text-xs text-slate-400 block font-medium uppercase tracking-wider">โหมดการเล่น</span>
+                        <span id="lbl-game-difficulty" class="text-indigo-600 font-bold">ปกติ</span>
+                    </div>
+                    <div class="text-center">
+                        <span class="text-xs text-slate-400 block font-medium uppercase tracking-wider">คะแนนของคุณ</span>
+                        <span id="lbl-game-score" class="text-3xl font-black text-emerald-600">0</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs text-slate-400 block font-medium uppercase tracking-wider">ตอบผิดเหลืออีก</span>
+                        <div id="heart-container" class="flex gap-1 justify-end text-pink-500 text-lg mt-1">
+                            <i class="fa-solid fa-heart"></i>
+                            <i class="fa-solid fa-heart"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Equation Box Area -->
+                <div class="flex-grow flex flex-col items-center justify-center text-center my-6 py-8 px-4 bg-gradient-to-b from-indigo-50 to-white rounded-3xl border-2 border-indigo-100 relative">
+                    <span class="absolute top-3 left-4 text-xs font-bold text-indigo-400 uppercase tracking-widest bg-white px-2 py-0.5 rounded-full shadow-xs">Solve This</span>
+                    <span class="text-sm text-slate-400">จงหาค่าตัวแปรของสมการต่อไปนี้</span>
+                    <h4 id="lbl-equation-display" class="text-4xl md:text-5xl font-black text-indigo-700 mt-2 mb-4 tracking-wide">X - 7 = 12</h4>
+                </div>
+
+                <!-- Two Choice Layout (Left & Right Buttons) -->
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Left Option Box -->
+                    <div class="bg-indigo-50 border-2 border-indigo-200 rounded-2xl p-4 flex flex-col items-center justify-between text-center relative overflow-hidden h-36">
+                        <div class="absolute top-2 left-2 bg-indigo-500 text-white text-xs px-2 py-0.5 rounded-md font-bold uppercase">ตัวเลือกซ้าย</div>
+                        <div class="absolute top-2 right-2 flex items-center gap-1 text-[10px] bg-white px-1.5 py-0.5 rounded border border-indigo-100 text-slate-500">
+                            <span>✊ กำมือ</span>
+                        </div>
+                        <div class="flex-grow flex items-center justify-center">
+                            <span id="lbl-choice-left" class="text-4xl font-extrabold text-indigo-800">19</span>
+                        </div>
+                        <div class="w-full bg-indigo-100 rounded-full h-2.5 overflow-hidden relative">
+                            <div id="bar-choice-left" class="bg-indigo-500 h-full w-0 transition-all duration-100"></div>
+                        </div>
+                    </div>
+
+                    <!-- Right Option Box -->
+                    <div class="bg-pink-50 border-2 border-pink-200 rounded-2xl p-4 flex flex-col items-center justify-between text-center relative overflow-hidden h-36">
+                        <div class="absolute top-2 left-2 bg-pink-500 text-white text-xs px-2 py-0.5 rounded-md font-bold uppercase">ตัวเลือกขวา</div>
+                        <div class="absolute top-2 right-2 flex items-center gap-1 text-[10px] bg-white px-1.5 py-0.5 rounded border border-pink-100 text-slate-500">
+                            <span>✋ แบมือ</span>
+                        </div>
+                        <div class="flex-grow flex items-center justify-center">
+                            <span id="lbl-choice-right" class="text-4xl font-extrabold text-pink-800">5</span>
+                        </div>
+                        <div class="w-full bg-pink-100 rounded-full h-2.5 overflow-hidden relative">
+                            <div id="bar-choice-right" class="bg-pink-500 h-full w-0 transition-all duration-100"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Emergency Manual Keyboard Buttons (In case camera doesn't work well) -->
+                <div class="text-center border-t border-slate-100 pt-3">
+                    <p class="text-xs text-slate-400 mb-2">หรือ ใช้คลิกข้ามกล้องชั่วคราวเพื่อตรวจสอบความถูกต้องของสมการ</p>
+                    <div class="flex justify-center gap-4">
+                        <button onclick="triggerSelectChoice('left')" class="px-4 py-2 bg-indigo-100 text-indigo-700 text-xs font-bold rounded-lg hover:bg-indigo-200 transition-all">กดตอบซ้าย ✊</button>
+                        <button onclick="triggerSelectChoice('right')" class="px-4 py-2 bg-pink-100 text-pink-700 text-xs font-bold rounded-lg hover:bg-pink-200 transition-all">กดตอบขวา ✋</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Camera & Gesture Tracking Feedback -->
+            <div class="w-full md:w-2/5 bg-slate-900 flex flex-col text-white relative">
+                <!-- Camera Live Stream Canvas -->
+                <div class="relative flex-grow flex items-center justify-center min-h-[250px] md:min-h-0 bg-slate-950 overflow-hidden">
+                    <video id="webcam-feed" class="absolute w-full h-full object-cover transform scale-x-[-1] opacity-50" autoplay playsinline></video>
+                    <!-- Gesture Overlay Graphics Draw Canvas -->
+                    <canvas id="gesture-overlay" class="absolute w-full h-full object-cover transform scale-x-[-1] z-10"></canvas>
+
+                    <!-- Target Gesture Center Highlight Zone -->
+                    <div class="absolute inset-0 pointer-events-none border-4 border-dashed border-white/20 m-6 rounded-2xl flex items-center justify-center z-10">
+                        <div id="gesture-instruction" class="bg-black/70 backdrop-blur border border-white/10 px-4 py-2.5 rounded-xl text-center max-w-[80%]">
+                            <p class="text-xs text-slate-400">ระบบกำลังเปิดใช้งานและปรับแต่งกล้องหน้า...</p>
+                            <p class="text-xs text-indigo-400 font-bold mt-1">กรุณาวางมือให้กล้องจับได้ชัดเจน</p>
+                        </div>
+                    </div>
+
+                    <!-- Gesture Detection Status Pill -->
+                    <div class="absolute top-4 left-4 z-20 flex gap-2">
+                        <span id="badge-detector-status" class="bg-amber-500/80 text-black text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
+                            <i class="fa-solid fa-circle-notch animate-spin"></i> กำลังตรวจหากล้อง
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Hand State Control Console Panel (Inside Camera Frame Footer) -->
+                <div class="p-4 bg-slate-950/90 border-t border-white/10 z-20 flex justify-between items-center text-xs">
+                    <div class="flex items-center gap-2">
+                        <div id="puck-left-state" class="w-2.5 h-2.5 rounded-full bg-slate-600"></div>
+                        <span class="text-slate-400">มือซ้าย: <strong id="lbl-left-hand-state" class="text-white">ไม่พบ</strong></span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div id="puck-right-state" class="w-2.5 h-2.5 rounded-full bg-slate-600"></div>
+                        <span class="text-slate-400">มือขวา: <strong id="lbl-right-hand-state" class="text-white">ไม่พบ</strong></span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SCREEN 5: Leaderboard View (ตารางคะแนน) -->
+        <section id="screen-scores" class="hidden w-full max-w-lg bg-white rounded-3xl shadow-2xl border-4 border-indigo-400 p-8 flex flex-col gap-6">
+            <div class="text-center">
+                <i class="fa-solid fa-trophy text-5xl text-yellow-500 mb-2"></i>
+                <h3 class="text-2xl font-bold text-slate-800">ทำเนียบอันดับเกียรติยศ</h3>
+                <p class="text-slate-500 text-sm">เรียงลำดับผลคะแนนที่ดีที่สุดในการแก้โจทย์คณิตศาสตร์</p>
+            </div>
+
+            <!-- Score Data List Table -->
+            <div class="overflow-hidden border border-slate-100 rounded-2xl">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-50 text-slate-500 uppercase font-bold text-xs">
+                        <tr>
+                            <th class="px-4 py-3 text-center">อันดับ</th>
+                            <th class="px-4 py-3">ผู้เล่น</th>
+                            <th class="px-4 py-3 text-center">คะแนน</th>
+                            <th class="px-4 py-3 text-center">วันที่เล่น</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbl-scores-body" class="divide-y divide-slate-100 font-medium">
+                        <!-- Dynamic Records Render -->
+                        <tr>
+                            <td colspan="4" class="px-4 py-8 text-center text-slate-400 font-normal">ยังไม่มีบันทึกข้อมูลการจัดอันดับในเครื่องนี้</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <button onclick="changeScreen('screen-home')" class="btn-bounce w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl">
+                กลับเข้าสู่หน้าหลัก
+            </button>
+        </section>
+
+        <!-- MODALS (เกมโอเวอร์ / ด่านผ่าน) -->
+        <!-- Pop 1: GAME OVER MODAL -->
+        <div id="modal-gameover" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl shadow-2xl border-4 border-pink-500 p-8 max-w-sm w-full text-center flex flex-col items-center gap-5 animate-bounce-scale">
+                <div class="w-24 h-24 bg-pink-100 rounded-full flex items-center justify-center text-6xl">💀</div>
+                <div>
+                    <h4 class="text-3xl font-black text-pink-600">GAME OVER</h4>
+                    <p class="text-slate-500 text-sm mt-1">ตอบคำถามผิดพลาดครบ 2 ครั้งแล้ว!</p>
+                </div>
+                <div class="bg-slate-50 p-4 rounded-2xl w-full border border-slate-100">
+                    <span class="text-slate-400 text-xs block">คะแนนสุดท้ายของคุณ</span>
+                    <strong id="lbl-modal-final-score" class="text-4xl font-extrabold text-slate-800">0</strong>
+                </div>
+                <div class="flex flex-col gap-2 w-full">
+                    <button onclick="retryGame()" class="btn-bounce w-full bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg border-b-4 border-emerald-700">ท้าทายใหม่อีกครั้ง</button>
+                    <button onclick="closeModalAndGoHome('modal-gameover')" class="w-full bg-slate-100 text-slate-600 font-bold py-2 rounded-xl text-sm">กลับหน้าหลัก</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pop 2: WIN & UNLOCK HARD MODE MODAL -->
+        <div id="modal-win" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl shadow-2xl border-4 border-emerald-500 p-8 max-w-sm w-full text-center flex flex-col items-center gap-5">
+                <div class="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center text-6xl animate-rotate-star">🎉</div>
+                <div>
+                    <h4 class="text-3xl font-black text-emerald-600">ยินดีด้วย! ชนะแล้ว</h4>
+                    <p id="lbl-win-subtext" class="text-slate-500 text-sm mt-1">คุณปลดล็อกโหมดผู้เชี่ยวชาญ (โหมดยาก) สำเร็จ!</p>
+                </div>
+                <div class="bg-slate-50 p-4 rounded-2xl w-full border border-slate-100">
+                    <span class="text-slate-400 text-xs block">ทำคะแนนได้สูงสุด</span>
+                    <strong id="lbl-modal-win-score" class="text-4xl font-extrabold text-indigo-600">100</strong>
+                </div>
+                <div class="flex flex-col gap-2 w-full">
+                    <button id="btn-modal-continue-hard" onclick="continueToHardMode()" class="btn-bounce w-full bg-indigo-600 text-white font-bold py-3 rounded-xl shadow-lg border-b-4 border-indigo-800">ลุยต่อโหมดยาก! ✊✋</button>
+                    <button onclick="closeModalAndGoHome('modal-win')" class="w-full bg-slate-100 text-slate-600 font-bold py-2 rounded-xl text-sm">กลับสู่หน้าแรก</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feedback Layer (👍 / 👎 Large Animation Notification Overlay) -->
+        <div id="toast-feedback-overlay" class="hidden fixed inset-0 z-40 pointer-events-none flex items-center justify-center">
+            <div id="toast-icon-card" class="bg-white/95 backdrop-blur shadow-2xl rounded-3xl border-8 p-10 flex flex-col items-center justify-center transform transition-all">
+                <span id="toast-emoji-icon" class="text-9xl">👍</span>
+                <span id="toast-title" class="text-3xl font-black mt-4">ยอดเยี่ยมมาก!</span>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Global Screen Footer -->
+    <footer class="w-full text-center py-4 text-xs text-slate-400 border-t border-slate-100 bg-white/50">
+        Fraction Head Challenge • พัฒนาโดยความสามารถตรวจจับโครงร่างมือ (MediaPipe Hands Engine)
+    </footer>
+
+    <!-- Native JavaScript Controller Implementation -->
+    <script>
+        // State Machine
+        const state = {
+            playerName: "ผู้เล่นทั่วไป",
+            currentScore: 0,
+            incorrectCount: 0,
+            maxIncorrectAllowed: 2,
+            difficulty: "easy", // 'easy' or 'hard'
+            hasUnlockedHard: false,
+            currentEquation: null,
+            isGameRunning: false,
+            soundEnabled: true,
+            highScore: 0,
+            gamesPlayed: 0
+        };
+
+        // DOM Referencing
+        const screens = {
+            'screen-home': document.getElementById('screen-home'),
+            'screen-setup': document.getElementById('screen-setup'),
+            'screen-tutorial': document.getElementById('screen-tutorial'),
+            'screen-game': document.getElementById('screen-game'),
+            'screen-scores': document.getElementById('screen-scores')
+        };
+
+        // Web Audio Synthesizer Class (เสียงประกอบภายในเกม ไม่ต้องดึงเว็บนอก)
+        class GameSoundFX {
+            constructor() {
+                this.ctx = null;
+            }
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+            playTone(freq, type, duration, delay = 0) {
+                if (!state.soundEnabled) return;
+                this.init();
+                
+                setTimeout(() => {
+                    try {
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = type;
+                        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                        
+                        gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                        
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        
+                        osc.start();
+                        osc.stop(this.ctx.currentTime + duration);
+                    } catch (e) {
+                        console.warn("Audio Context Error: ", e);
+                    }
+                }, delay * 1000);
+            }
+            click() {
+                this.playTone(600, 'sine', 0.08);
+            }
+            correct() {
+                // Happy high double beep
+                this.playTone(523.25, 'triangle', 0.15); // C5
+                this.playTone(659.25, 'triangle', 0.25, 0.1); // E5
+            }
+            wrong() {
+                // Buzz low tone
+                this.playTone(150, 'sawtooth', 0.4);
+            }
+            unlock() {
+                // Arpeggio rising
+                this.playTone(261.63, 'sine', 0.1, 0); // C4
+                this.playTone(329.63, 'sine', 0.1, 0.08); // E4
+                this.playTone(392.00, 'sine', 0.1, 0.16); // G4
+                this.playTone(523.25, 'sine', 0.3, 0.24); // C5
+            }
+            gameover() {
+                // Sad descending tone
+                this.playTone(300, 'sawtooth', 0.2, 0);
+                this.playTone(200, 'sawtooth', 0.2, 0.15);
+                this.playTone(120, 'sawtooth', 0.5, 0.3);
+            }
+        }
+        const sfx = new GameSoundFX();
+
+        // Check Hard mode eligibility inside storage
+        function evaluateDifficultyLockStatus() {
+            const high = parseInt(localStorage.getItem('fhc_high_score') || '0');
+            const hasUnlocked = localStorage.getItem('fhc_unlocked_hard') === 'true' || high >= 100;
+            
+            const btnSelector = document.getElementById('btn-difficulty-selector');
+            const diffLabel = document.getElementById('lbl-home-difficulty');
+            const badgeLabel = document.getElementById('lbl-difficulty-unlock-badge');
+            const icon = document.getElementById('diff-home-icon');
+
+            if (hasUnlocked) {
+                state.hasUnlockedHard = true;
+                localStorage.setItem('fhc_unlocked_hard', 'true');
+                btnSelector.classList.remove('bg-slate-100', 'text-slate-400', 'border-dashed', 'border-slate-300');
+                btnSelector.classList.add('bg-indigo-50', 'text-indigo-700', 'border-indigo-200');
+                badgeLabel.className = "text-xs bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-md font-bold";
+                badgeLabel.innerText = "ปลดล็อคแล้ว";
+                icon.className = "fa-solid fa-lock-open text-indigo-600 text-lg";
+            } else {
+                state.hasUnlockedHard = false;
+                btnSelector.classList.add('bg-slate-100', 'text-slate-400', 'border-dashed', 'border-slate-300');
+                btnSelector.classList.remove('bg-indigo-50', 'text-indigo-700', 'border-indigo-200');
+                badgeLabel.className = "text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded";
+                badgeLabel.innerText = "ล็อค (สะสม 100 คะแนน)";
+                icon.className = "fa-solid fa-lock text-slate-400";
+            }
+            diffLabel.innerText = state.difficulty === 'hard' ? "ผู้เชี่ยวชาญ (ยาก)" : "เริ่มต้น (ปกติ)";
+        }
+
+        // Toggle Difficulty from Screen Main Home (If unlocked)
+        function toggleDifficultyFromHome() {
+            sfx.click();
+            if (!state.hasUnlockedHard) {
+                showToastFeedback("🔒 ยังไม่ปลดล็อค", "ต้องได้รับคะแนนสะสม 100 ขึ้นไป", "border-pink-500 text-pink-600", "❌");
+                return;
+            }
+            state.difficulty = (state.difficulty === 'easy') ? 'hard' : 'easy';
+            document.getElementById('lbl-home-difficulty').innerText = state.difficulty === 'hard' ? "ผู้เชี่ยวชาญ (ยาก)" : "เริ่มต้น (ปกติ)";
+            showToastFeedback("⚙️ เปลี่ยนระดับสำเร็จ", `กำลังเล่นในโหมด ${state.difficulty === 'hard' ? 'ระดับยาก' : 'ระดับปกติ'}`, "border-indigo-500 text-indigo-700", "🎯");
+        }
+
+        // Navigation Controller
+        function changeScreen(targetId) {
+            sfx.click();
+            Object.keys(screens).forEach(id => {
+                screens[id].classList.add('hidden');
+            });
+            screens[targetId].classList.remove('hidden');
+
+            // Hook screens initialize
+            if (targetId === 'screen-home') {
+                evaluateDifficultyLockStatus();
+                // Check if user is cached
+                const cacheName = localStorage.getItem('fhc_player_name');
+                if (cacheName) {
+                    document.getElementById('user-badge').classList.remove('hidden');
+                    document.getElementById('user-badge').classList.add('flex');
+                    document.getElementById('badge-name').innerText = cacheName;
+                }
+            } else if (targetId === 'screen-setup') {
+                const cacheName = localStorage.getItem('fhc_player_name');
+                if (cacheName) {
+                    document.getElementById('txt-player-name').value = cacheName;
+                    // Load statistics preview
+                    const hScore = localStorage.getItem('fhc_high_score') || '0';
+                    const plays = localStorage.getItem('fhc_play_count') || '0';
+                    const lastDate = localStorage.getItem('fhc_last_played') || 'ไม่มีประวัติ';
+                    
+                    document.getElementById('lbl-stat-high').innerText = hScore;
+                    document.getElementById('lbl-stat-count').innerText = plays;
+                    document.getElementById('lbl-stat-date').innerText = lastDate;
+                    document.getElementById('box-player-stats').classList.remove('hidden');
+                }
+            }
+        }
+
+        // Sound Toggle Controller
+        document.getElementById('sound-toggle').addEventListener('click', () => {
+            state.soundEnabled = !state.soundEnabled;
+            const icon = document.getElementById('sound-icon');
+            if (state.soundEnabled) {
+                icon.className = "fa-solid fa-volume-high text-lg text-indigo-600";
+            } else {
+                icon.className = "fa-solid fa-volume-xmark text-lg text-slate-400";
+            }
+            sfx.click();
+        });
+
+        // Register / Save User
+        function saveUserAndProceed() {
+            const rawName = document.getElementById('txt-player-name').value.trim();
+            if (!rawName) {
+                // Fallback alert using safe custom overlay instead of system prompt
+                showToastFeedback("⚠️ ข้อมูลไม่ครบถ้วน", "กรุณาระบุชื่อของคุณก่อนดำเนินการเล่นเกม", "border-amber-500 text-amber-700", "✏️");
+                return;
+            }
+            state.playerName = rawName;
+            localStorage.setItem('fhc_player_name', rawName);
+
+            // Increment Play counts
+            let playCount = parseInt(localStorage.getItem('fhc_play_count') || '0');
+            localStorage.setItem('fhc_play_count', playCount + 1);
+            localStorage.setItem('fhc_last_played', new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }));
+
+            changeScreen('screen-tutorial');
+        }
+
+        // Open High Scores Leaderboard View
+        function openScores() {
+            const listBody = document.getElementById('tbl-scores-body');
+            listBody.innerHTML = "";
+
+            // Mock list alongside local storage records
+            let entries = [];
+            
+            // Get Local player score if registered
+            const curPlayerName = localStorage.getItem('fhc_player_name');
+            const curHighScore = parseInt(localStorage.getItem('fhc_high_score') || '0');
+            const curDate = localStorage.getItem('fhc_last_played') || 'เมื่อเร็วๆ นี้';
+
+            // Populate mock ranks for competitive environment
+            entries.push({ name: "น้องภูมิ ม.1", score: 180, date: "15 ต.ค. 69" });
+            entries.push({ name: "พิชิตสมการ", score: 140, date: "20 พ.ย. 69" });
+            entries.push({ name: "ครูฟ้า สอนเลข", score: 120, date: "01 ธ.ค. 69" });
+
+            if (curPlayerName) {
+                entries.push({ name: curPlayerName + " (คุณ)", score: curHighScore, date: curDate.split(' ')[0] });
+            }
+
+            // Sort DESC score
+            entries.sort((a, b) => b.score - a.score);
+
+            entries.forEach((item, index) => {
+                const medalColors = ["text-yellow-500", "text-slate-400", "text-amber-600"];
+                const isMedal = index < 3;
+                const indexIcon = isMedal ? `<i class="fa-solid fa-medal text-lg ${medalColors[index]}"></i>` : index + 1;
+                
+                const row = document.createElement('tr');
+                row.className = "hover:bg-slate-50 transition-colors";
+                row.innerHTML = `
+                    <td class="px-4 py-3 text-center font-bold text-slate-500">${indexIcon}</td>
+                    <td class="px-4 py-3 text-slate-800">${item.name}</td>
+                    <td class="px-4 py-3 text-center text-indigo-600 font-extrabold text-base">${item.score}</td>
+                    <td class="px-4 py-3 text-center text-xs text-slate-400">${item.date}</td>
+                `;
+                listBody.appendChild(row);
+            });
+
+            changeScreen('screen-scores');
+        }
+
+        /* ----------------------------------------------------
+           EQUATION GENERATOR ENGINE (สุ่มโจทย์คณิตศาสตร์สมการเชิงเส้น)
+           ---------------------------------------------------- */
+        
+        function generateSingleLinearEquation(level = 'easy') {
+            let equationString = "";
+            let correctAnswer = 0;
+            let fakeAnswer = 0;
+            let variables = ['x', 'y', 'z', 'a', 'b'];
+            let variable = variables[Math.floor(Math.random() * variables.length)];
+
+            if (level === 'easy') {
+                // Easy Types: e.g. x - 7 = 12, 3y + 5 = 20, 18 - 5x = 8, 4y + 6 = 22
+                const types = [
+                    // Type 1: v + a = b  => v = b - a
+                    () => {
+                        const a = Math.floor(Math.random() * 15) + 1;
+                        const vValue = Math.floor(Math.random() * 15) + 2;
+                        const b = vValue + a;
+                        equationString = `${variable.toUpperCase()} + ${a} = ${b}`;
+                        correctAnswer = vValue;
+                        // Common mistake: student subtracted or added wrong
+                        fakeAnswer = b + a; 
+                    },
+                    // Type 2: v - a = b => v = b + a
+                    () => {
+                        const a = Math.floor(Math.random() * 12) + 1;
+                        const vValue = Math.floor(Math.random() * 15) + 2;
+                        const b = vValue - a;
+                        equationString = `${variable.toUpperCase()} - ${a} = ${b}`;
+                        correctAnswer = vValue;
+                        // Common mistake: subtraction flipped sign error
+                        fakeAnswer = b - a;
+                    },
+                    // Type 3: kv + a = b => v = (b - a)/k
+                    () => {
+                        const k = Math.floor(Math.random() * 4) + 2; // coefficient
+                        const vValue = Math.floor(Math.random() * 8) + 1;
+                        const a = Math.floor(Math.random() * 10) + 1;
+                        const b = (k * vValue) + a;
+                        equationString = `${k}${variable} + ${a} = ${b}`;
+                        correctAnswer = vValue;
+                        // Common mistake: multiplied or didn't divide, or did wrong sign
+                        fakeAnswer = Math.round((b + a) / k);
+                        if (fakeAnswer === correctAnswer) fakeAnswer += 3;
+                    },
+                    // Type 4: a - kv = b => kv = a - b
+                    () => {
+                        const k = Math.floor(Math.random() * 3) + 2;
+                        const vValue = Math.floor(Math.random() * 6) + 1;
+                        const b = Math.floor(Math.random() * 10) + 2;
+                        const a = b + (k * vValue);
+                        equationString = `${a} - ${k}${variable} = ${b}`;
+                        correctAnswer = vValue;
+                        // Common mistake: sign error
+                        fakeAnswer = Math.round((a + b) / k);
+                        if (fakeAnswer === correctAnswer) fakeAnswer -= 2;
+                    }
+                ];
+
+                // Select random template
+                types[Math.floor(Math.random() * types.length)]();
+
+            } else {
+                // Hard Mode Types: e.g. 6x + 5 = 3x + 20, 8(x - 2) = 48, 7(2x - 1) = 5x + 34
+                const types = [
+                    // Type 1: ax + b = cx + d => (a - c)x = d - b
+                    () => {
+                        const xVal = Math.floor(Math.random() * 8) + 1;
+                        const c = Math.floor(Math.random() * 5) + 1;
+                        const diff = Math.floor(Math.random() * 4) + 2; // (a - c)
+                        const a = c + diff;
+                        const b = Math.floor(Math.random() * 15) + 2;
+                        const d = (diff * xVal) + b;
+                        equationString = `${a}${variable} + ${b} = ${c}${variable} + ${d}`;
+                        correctAnswer = xVal;
+                        // Common mistake: adding x coefficients instead of subtracting
+                        fakeAnswer = Math.abs(Math.round((d - b) / (a + c)));
+                        if (fakeAnswer === correctAnswer) fakeAnswer = xVal + 2;
+                    },
+                    // Type 2: a(x - b) = c => x = c/a + b
+                    () => {
+                        const a = Math.floor(Math.random() * 5) + 2;
+                        const b = Math.floor(Math.random() * 6) + 1;
+                        const xVal = Math.floor(Math.random() * 8) + 1;
+                        const c = a * (xVal - b);
+                        equationString = `${a}(${variable} - ${b}) = ${c}`;
+                        correctAnswer = xVal;
+                        // Common mistake: not distributing 'a' properly or sign error
+                        fakeAnswer = Math.round(c / a) - b;
+                        if (fakeAnswer === correctAnswer) fakeAnswer = xVal + b;
+                    },
+                    // Type 3: a(bx - c) = dx + e
+                    () => {
+                        // Let's simplified to: 2(2x - 1) = x + 7 => 4x - 2 = x + 7 => 3x = 9 => x = 3
+                        const xVal = Math.floor(Math.random() * 5) + 1;
+                        const a = 2;
+                        const b = 2;
+                        const c = Math.floor(Math.random() * 3) + 1;
+                        // LHS: a*(b*x - c) = 2*(2*xVal - c) = 4*xVal - 2c
+                        // Let RHS be: xVal + e
+                        // Hence: 4*xVal - 2c = xVal + e => 3*xVal - 2c = e
+                        const e = (3 * xVal) - (a * c);
+                        
+                        equationString = `${a}(${b}${variable} - ${c}) = ${variable} + ${e}`;
+                        correctAnswer = xVal;
+                        fakeAnswer = xVal + c;
+                    }
+                ];
+
+                types[Math.floor(Math.random() * types.length)]();
+            }
+
+            // Guard against edge cases where calculation yields NaN
+            if (isNaN(correctAnswer)) correctAnswer = 5;
+            if (isNaN(fakeAnswer) || fakeAnswer === correctAnswer) fakeAnswer = correctAnswer + 3;
+
+            return {
+                equation: equationString,
+                answer: correctAnswer,
+                wrong: fakeAnswer
+            };
+        }
+
+        // Make sure equation does not repeat sequentially
+        let lastEquationString = "";
+        function getUniqueEquation(level) {
+            let nextObj = generateSingleLinearEquation(level);
+            let attempts = 0;
+            while (nextObj.equation === lastEquationString && attempts < 10) {
+                nextObj = generateSingleLinearEquation(level);
+                attempts++;
+            }
+            lastEquationString = nextObj.equation;
+            return nextObj;
+        }
+
+        // Draw HUD Elements for Hearth Icons
+        function renderHearts() {
+            const container = document.getElementById('heart-container');
+            container.innerHTML = "";
+            const activeHearts = state.maxIncorrectAllowed - state.incorrectCount;
+            for (let i = 0; i < state.maxIncorrectAllowed; i++) {
+                const heart = document.createElement('i');
+                if (i < activeHearts) {
+                    heart.className = "fa-solid fa-heart text-pink-500 transform hover:scale-110 transition-transform";
+                } else {
+                    heart.className = "fa-regular fa-heart text-slate-300";
+                }
+                container.appendChild(heart);
+            }
+        }
+
+
+        /* ----------------------------------------------------
+           GAMEPLAY ENGINE (ควบคุมการเล่นเกม / ตอบคำถาม)
+           ---------------------------------------------------- */
+        
+        let choicePlacement = "left"; // "left" or "right" correctly answers
+        let selectTimer = null;
+        let selectedSide = null; // 'left' or 'right' currently detected
+        let detectionCounter = 0; // Number of successive frames detecting action
+        const FRAMES_REQUIRED_FOR_SELECT = 25; // Continuous detection duration threshold (around 1-1.5 sec)
+
+        function showNextQuestion() {
+            // Get equation based on current active difficulty
+            state.currentEquation = getUniqueEquation(state.difficulty);
+            
+            // Randomly assign choices layout
+            choicePlacement = Math.random() > 0.5 ? "left" : "right";
+            
+            const leftLabel = document.getElementById('lbl-choice-left');
+            const rightLabel = document.getElementById('lbl-choice-right');
+            const eqLabel = document.getElementById('lbl-equation-display');
+
+            eqLabel.innerText = state.currentEquation.equation;
+
+            if (choicePlacement === "left") {
+                leftLabel.innerText = state.currentEquation.answer;
+                rightLabel.innerText = state.currentEquation.wrong;
+            } else {
+                leftLabel.innerText = state.currentEquation.wrong;
+                rightLabel.innerText = state.currentEquation.answer;
+            }
+
+            // Clear previous inputs tracker progress bars
+            resetInputBuffers();
+        }
+
+        function resetInputBuffers() {
+            selectedSide = null;
+            detectionCounter = 0;
+            document.getElementById('bar-choice-left').style.width = "0%";
+            document.getElementById('bar-choice-right').style.width = "0%";
+        }
+
+        // Toast Feedback Alert Notification with Nice Icons
+        function showToastFeedback(title, desc, styleClass, emoji) {
+            const overlay = document.getElementById('toast-feedback-overlay');
+            const card = document.getElementById('toast-icon-card');
+            const emojiEl = document.getElementById('toast-emoji-icon');
+            const titleEl = document.getElementById('toast-title');
+            
+            emojiEl.innerText = emoji;
+            titleEl.innerText = title;
+            card.className = `bg-white/95 backdrop-blur shadow-2xl rounded-3xl border-8 p-10 flex flex-col items-center justify-center transform scale-95 opacity-0 transition-all duration-300 ${styleClass}`;
+            
+            overlay.classList.remove('hidden');
+            
+            // Trigger animation frame
+            setTimeout(() => {
+                card.classList.remove('scale-95', 'opacity-0');
+                card.classList.add('scale-100', 'opacity-100');
+            }, 10);
+
+            setTimeout(() => {
+                card.classList.add('scale-95', 'opacity-0');
+                card.classList.remove('scale-100', 'opacity-100');
+                setTimeout(() => {
+                    overlay.classList.add('hidden');
+                }, 300);
+            }, 1400);
+        }
+
+        // Trigger Answer validation
+        function triggerSelectChoice(side) {
+            if (!state.isGameRunning) return;
+            sfx.click();
+
+            const isCorrect = (side === choicePlacement);
+            
+            if (isCorrect) {
+                // Correct path
+                state.currentScore += 10;
+                sfx.correct();
+                spawnConfetti();
+
+                // Check transition thresholds
+                if (state.currentScore >= 100 && state.difficulty === 'easy' && !state.hasUnlockedHard) {
+                    // Win and Unlock Difficulties
+                    state.hasUnlockedHard = true;
+                    localStorage.setItem('fhc_unlocked_hard', 'true');
+                    saveStatsToStorage();
+                    sfx.unlock();
+                    openWinModal();
+                    return;
+                }
+
+                // Show Correct Screen Indicator Overlay
+                showToastFeedback("ยอดเยี่ยมมาก!", "+10 คะแนน", "border-emerald-500 text-emerald-600", "👍");
+                document.getElementById('lbl-game-score').innerText = state.currentScore;
+                
+                // Show next card
+                showNextQuestion();
+
+            } else {
+                // Incorrect path
+                state.incorrectCount++;
+                sfx.wrong();
+                renderHearts();
+
+                // Trigger Screen shake animation
+                const activeRoom = document.getElementById('screen-game');
+                activeRoom.classList.add('animate-shake');
+                setTimeout(() => activeRoom.classList.remove('animate-shake'), 500);
+
+                if (state.incorrectCount >= state.maxIncorrectAllowed) {
+                    // Game Over Trigger
+                    saveStatsToStorage();
+                    sfx.gameover();
+                    openGameOverModal();
+                    return;
+                }
+
+                // Normal wrong deduction feedback
+                state.currentScore = Math.max(0, state.currentScore - 5);
+                showToastFeedback("ผิดไปนิดเดียว!", "-5 คะแนน", "border-pink-500 text-pink-600", "👎");
+                document.getElementById('lbl-game-score').innerText = state.currentScore;
+                
+                showNextQuestion();
+            }
+        }
+
+        // Local Storage high score state updater
+        function saveStatsToStorage() {
+            const cachedHigh = parseInt(localStorage.getItem('fhc_high_score') || '0');
+            if (state.currentScore > cachedHigh) {
+                localStorage.setItem('fhc_high_score', state.currentScore);
+            }
+        }
+
+        /* ----------------------------------------------------
+           MEDIAS AND SYSTEM CAMERA GESTURE PROCESSING ENGINE
+           ---------------------------------------------------- */
+
+        let camera = null;
+        let mediaPipeHands = null;
+        const videoElement = document.getElementById('webcam-feed');
+        const canvasElement = document.getElementById('gesture-overlay');
+        const canvasCtx = canvasElement.getContext('2d');
+
+        // Start Gameplay Scene Camera pipeline
+        function startGame() {
+            state.currentScore = 0;
+            state.incorrectCount = 0;
+            state.isGameRunning = true;
+            
+            document.getElementById('lbl-game-score').innerText = "0";
+            document.getElementById('lbl-game-difficulty').innerText = state.difficulty === 'hard' ? "ผู้เชี่ยวชาญ (ยาก)" : "เริ่มต้น (ปกติ)";
+            
+            renderHearts();
+            changeScreen('screen-game');
+            showNextQuestion();
+
+            // Initialize Camera Setup
+            setupGestureTrackingCamera();
+        }
+
+        function setupGestureTrackingCamera() {
+            // Re-adapt Canvas responsive resolution on window frames
+            fitCanvasResolution();
+
+            if (mediaPipeHands) {
+                // Already loaded, just start stream
+                return;
+            }
+
+            const statusPill = document.getElementById('badge-detector-status');
+            const feedbackText = document.getElementById('gesture-instruction');
+
+            // Initialize MediaPipe Hands
+            mediaPipeHands = new Hands({
+                locateFile: (file) => {
+                    return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+                }
+            });
+
+            mediaPipeHands.setOptions({
+                maxNumHands: 2,
+                modelComplexity: 1,
+                minDetectionConfidence: 0.55,
+                minTrackingConfidence: 0.55
+            });
+
+            mediaPipeHands.onResults(processHandLandmarksAndGestures);
+
+            // Access user Web Camera
+            camera = new Camera(videoElement, {
+                onFrame: async () => {
+                    await mediaPipeHands.send({ image: videoElement });
+                },
+                width: 640,
+                height: 480
+            });
+
+            camera.start()
+                .then(() => {
+                    statusPill.className = "bg-emerald-500 text-white text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-md animate-bounce-scale";
+                    statusPill.innerHTML = `<i class="fa-solid fa-camera"></i> กล้องหน้าพร้อมแล้ว`;
+                    feedbackText.innerHTML = `
+                        <p class="text-xs text-white font-bold">ระบบกล้องทำนวัตกรรมเริ่มทำงานสำเร็จ!</p>
+                        <p class="text-[10px] text-emerald-400 mt-0.5">✊ กำมือฝั่งซ้าย | ✋ แบมือฝั่งขวา</p>
+                    `;
+                })
+                .catch((err) => {
+                    console.error("Camera Initializing Fault: ", err);
+                    statusPill.className = "bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1";
+                    statusPill.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ข้อผิดพลาดเปิดกล้องไม่ได้`;
+                    feedbackText.innerHTML = `
+                        <p class="text-xs text-rose-300 font-bold">ไม่สามารถเข้าถึงอุปกรณ์กล้องหน้าได้</p>
+                        <p class="text-[10px] text-slate-300 mt-1">น้องๆ ยังคงสามารถคลิกปุ่มสีฟ้า/ชมพู ด้านล่างเพื่อส่งคำตอบได้ปกติ!</p>
+                    `;
+                });
+        }
+
+        function fitCanvasResolution() {
+            const rect = videoElement.getBoundingClientRect();
+            canvasElement.width = rect.width || 640;
+            canvasElement.height = rect.height || 480;
+        }
+        window.addEventListener('resize', fitCanvasResolution);
+
+        // Core Gesture Detection Rule implementation
+        function processHandLandmarksAndGestures(results) {
+            // Draw clean path
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+
+            // Update detector monitors
+            const lPuck = document.getElementById('puck-left-state');
+            const rPuck = document.getElementById('puck-right-state');
+            const lLabel = document.getElementById('lbl-left-hand-state');
+            const rLabel = document.getElementById('lbl-right-hand-state');
+
+            let leftHandDetectedState = "ไม่พบ";
+            let rightHandDetectedState = "ไม่พบ";
+
+            // Visual feedback bar bindings
+            const leftBar = document.getElementById('bar-choice-left');
+            const rightBar = document.getElementById('bar-choice-right');
+
+            let detectedGestureThisFrame = null; // 'left' or 'right' selection detected
+
+            if (results.multiHandLandmarks && results.multiHandedness) {
+                for (let i = 0; i < results.multiHandLandmarks.length; i++) {
+                    const landmarks = results.multiHandLandmarks[i];
+                    const handInfo = results.multiHandedness[i];
+                    
+                    // MediaPipe flips horizontal camera frames. Hence Left is Right
+                    const isLeftHand = handInfo.label === "Right"; 
+                    
+                    // Hand Gesture Analyzer
+                    const isFist = checkIsFistGesture(landmarks);
+                    const isOpenHand = checkIsOpenHandGesture(landmarks);
+
+                    let statusText = "สแกน...";
+                    if (isFist) statusText = "✊ กำมือ (Fist)";
+                    else if (isOpenHand) statusText = "✋ แบมือ (Open)";
+
+                    if (isLeftHand) {
+                        leftHandDetectedState = statusText;
+                        lPuck.className = "w-2.5 h-2.5 rounded-full bg-indigo-500 animate-ping";
+                    } else {
+                        rightHandDetectedState = statusText;
+                        rPuck.className = "w-2.5 h-2.5 rounded-full bg-pink-500 animate-ping";
+                    }
+
+                    // Render skeleton wireframes onto mirror canvas
+                    drawCustomHandSkeleton(landmarks);
+
+                    // Check Game Choice triggers
+                    if (isFist) {
+                        // Left Option trigger rule: "กำมือ" (Doesn't matter which hand player uses, Fist triggers Left Option)
+                        detectedGestureThisFrame = "left";
+                    } else if (isOpenHand) {
+                        // Right Option trigger rule: "แบมือ" (Open Hand triggers Right Option)
+                        detectedGestureThisFrame = "right";
+                    }
+                }
+            }
+
+            // Update UI Console badges
+            lLabel.innerText = leftHandDetectedState;
+            rLabel.innerText = rightHandDetectedState;
+            
+            if (leftHandDetectedState === "ไม่พบ") lPuck.className = "w-2.5 h-2.5 rounded-full bg-slate-600";
+            if (rightHandDetectedState === "ไม่พบ") rPuck.className = "w-2.5 h-2.5 rounded-full bg-slate-600";
+
+            // Handle detection timer progress loops
+            if (detectedGestureThisFrame && state.isGameRunning) {
+                if (selectedSide === detectedGestureThisFrame) {
+                    detectionCounter++;
+                } else {
+                    selectedSide = detectedGestureThisFrame;
+                    detectionCounter = 1;
+                }
+
+                // Render matching active buffers loading animations
+                const pct = Math.min(100, (detectionCounter / FRAMES_REQUIRED_FOR_SELECT) * 100);
+                if (selectedSide === "left") {
+                    leftBar.style.width = `${pct}%`;
+                    rightBar.style.width = `0%`;
+                } else {
+                    rightBar.style.width = `${pct}%`;
+                    leftBar.style.width = `0%`;
+                }
+
+                // Check trigger activation complete threshold
+                if (detectionCounter >= FRAMES_REQUIRED_FOR_SELECT) {
+                    triggerSelectChoice(selectedSide);
+                }
+            } else {
+                // Cool-off backoff progress
+                if (detectionCounter > 0) {
+                    detectionCounter -= 2;
+                    if (detectionCounter < 0) detectionCounter = 0;
+                    
+                    const pct = Math.min(100, (detectionCounter / FRAMES_REQUIRED_FOR_SELECT) * 100);
+                    if (selectedSide === "left") leftBar.style.width = `${pct}%`;
+                    else rightBar.style.width = `${pct}%`;
+
+                    if (detectionCounter === 0) selectedSide = null;
+                }
+            }
+        }
+
+        // Math Logic: Check Fist gesture rule (Are non-thumb fingers folded close to wrist?)
+        function checkIsFistGesture(landmarks) {
+            // Points index tips of fingers: Index(8), Middle(12), Ring(16), Pinky(20)
+            // Points base/joints: Index(5), Middle(9), Ring(13), Pinky(17)
+            // If TIP y coordinates are greater than base joints, it is closed (folded downward in normal webcam angle)
+            let foldedCount = 0;
+            const fingerTips = [8, 12, 16, 20];
+            const fingerBases = [5, 9, 13, 17];
+
+            for (let i = 0; i < fingerTips.length; i++) {
+                if (landmarks[fingerTips[i]].y > landmarks[fingerBases[i]].y) {
+                    foldedCount++;
+                }
+            }
+            return foldedCount >= 3;
+        }
+
+        // Math Logic: Check Open Hand gesture (Are fingers fully extended?)
+        function checkIsOpenHandGesture(landmarks) {
+            let extendedCount = 0;
+            const fingerTips = [8, 12, 16, 20];
+            const fingerBases = [5, 9, 13, 17];
+
+            for (let i = 0; i < fingerTips.length; i++) {
+                if (landmarks[fingerTips[i]].y < landmarks[fingerBases[i]].y) {
+                    extendedCount++;
+                }
+            }
+            return extendedCount >= 3;
+        }
+
+        // Aesthetic Utility: Render skeletal points wireframes
+        function drawCustomHandSkeleton(landmarks) {
+            canvasCtx.lineWidth = 4;
+            canvasCtx.strokeStyle = "#4f46e5"; // Indigo default
+            canvasCtx.fillStyle = "#ec4899"; // Pink spots
+
+            // Draw Lines connections pathways
+            const connections = [
+                // Thumb
+                [0, 1], [1, 2], [2, 3], [3, 4],
+                // Index
+                [0, 5], [5, 6], [6, 7], [7, 8],
+                // Middle
+                [9, 10], [10, 11], [11, 12],
+                // Ring
+                [13, 14], [14, 15], [15, 16],
+                // Pinky
+                [0, 17], [17, 18], [18, 19], [19, 20],
+                // Palm bases linkage
+                [5, 9], [9, 13], [13, 17]
+            ];
+
+            connections.forEach(([p1, p2]) => {
+                const pt1 = landmarks[p1];
+                const pt2 = landmarks[p2];
+
+                canvasCtx.beginPath();
+                canvasCtx.moveTo(pt1.x * canvasElement.width, pt1.y * canvasElement.height);
+                canvasCtx.lineTo(pt2.x * canvasElement.width, pt2.y * canvasElement.height);
+                canvasCtx.stroke();
+            });
+
+            // Draw joint nodes
+            for (let i = 0; i < landmarks.length; i++) {
+                const pt = landmarks[i];
+                canvasCtx.beginPath();
+                canvasCtx.arc(pt.x * canvasElement.width, pt.y * canvasElement.height, 5, 0, 2 * Math.PI);
+                canvasCtx.fill();
+            }
+        }
+
+
+        /* ----------------------------------------------------
+           MODALS & CONFETTI & ANIMATION EXTRAS
+           ---------------------------------------------------- */
+
+        // Confetti Emitter for Winning
+        function spawnConfetti() {
+            const container = document.getElementById('confetti-container');
+            container.innerHTML = "";
+            const colors = ['#f43f5e', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];
+            
+            for (let i = 0; i < 35; i++) {
+                const conf = document.createElement('div');
+                const size = Math.floor(Math.random() * 8) + 6;
+                conf.style.width = `${size}px`;
+                conf.style.height = `${size}px`;
+                conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                conf.style.position = "absolute";
+                conf.style.left = `${Math.floor(Math.random() * 100)}%`;
+                conf.style.top = "-20px";
+                conf.style.borderRadius = Math.random() > 0.5 ? "50%" : "3px";
+                conf.style.transform = `rotate(${Math.floor(Math.random() * 360)}deg)`;
+                
+                // Falling Speed Physics
+                const duration = Math.random() * 2 + 1.5;
+                conf.style.transition = `transform ${duration}s linear, top ${duration}s linear, opacity ${duration}s ease-out`;
+                
+                container.appendChild(conf);
+
+                // Start Fall
+                setTimeout(() => {
+                    conf.style.top = "105%";
+                    conf.style.transform = `rotate(${Math.floor(Math.random() * 720)}deg) translateX(${Math.floor(Math.random() * 60) - 30}px)`;
+                }, 50);
+
+                // Clean-up garbage
+                setTimeout(() => conf.remove(), duration * 1000 + 100);
+            }
+        }
+
+        // Open Modal: Game Over
+        function openGameOverModal() {
+            state.isGameRunning = false;
+            document.getElementById('lbl-modal-final-score').innerText = state.currentScore;
+            document.getElementById('modal-gameover').classList.remove('hidden');
+        }
+
+        // Open Modal: Win
+        function openWinModal() {
+            state.isGameRunning = false;
+            document.getElementById('lbl-modal-win-score').innerText = state.currentScore;
+            
+            const sub = document.getElementById('lbl-win-subtext');
+            const contBtn = document.getElementById('btn-modal-continue-hard');
+
+            if (state.difficulty === 'hard') {
+                sub.innerText = "คุณเก่งกล้ามาก! ผ่านอุปสรรคคณิตศาสตร์โหมดผู้เชี่ยวชาญสูงสุดสำเร็จแล้ว!";
+                contBtn.classList.add('hidden'); // No higher level
+            } else {
+                sub.innerText = "ผ่านสมการปกติสำเร็จแล้ว! ปลดล็อกโหมดผู้เชี่ยวชาญระดับยากเรียบร้อย";
+                contBtn.classList.remove('hidden');
+            }
+
+            document.getElementById('modal-win').classList.remove('hidden');
+        }
+
+        // Close Game Over & retry
+        function retryGame() {
+            document.getElementById('modal-gameover').classList.add('hidden');
+            startGame();
+        }
+
+        // Switch to Hard Mode directly
+        function continueToHardMode() {
+            document.getElementById('modal-win').classList.add('hidden');
+            state.difficulty = 'hard';
+            startGame();
+        }
+
+        function closeModalAndGoHome(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+            changeScreen('screen-home');
+        }
+
+        // Preload Hooking on Boot up
+        window.onload = function() {
+            // First time auto-load home menu config
+            evaluateDifficultyLockStatus();
+            changeScreen('screen-home');
+        };
+    </script>
+</body>
+</html>
